@@ -1,0 +1,46 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+logs/
+*.tmp
+*.swp
+*.swo
+
+# Node
+node_modules/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+.npm/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.env.*
+
+# Build outputs
+build/
+dist/
+coverage/
+.cache/
+.tmp/
+
+# Editors/IDE
+.vscode/
+.idea/
+*.iml
+
+# n8n
+.n8n/
+
+# OS
+Icon?
+.Spotlight-V100
+.Trashes
+
