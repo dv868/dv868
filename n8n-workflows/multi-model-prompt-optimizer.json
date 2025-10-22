@@ -1,0 +1,785 @@
+{
+  "name": "Multi-Model Prompt Optimizer and Answer Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "userText",
+              "value": ""
+            },
+            {
+              "name": "optimizerModel",
+              "value": "gpt4"
+            },
+            {
+              "name": "answerModel",
+              "value": "gpt4"
+            }
+          ]
+        }
+      },
+      "name": "User Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"optimizerModel\"]}}",
+              "operation": "equal",
+              "value2": "gpt4"
+            }
+          ]
+        }
+      },
+      "name": "IF Optimizer is GPT-4",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.OPENAI_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ model: 'gpt-4o', messages: [ { role: 'system', content: 'You are a prompt optimizer. Rewrite and enhance the user prompt to improve clarity, completeness, and effectiveness for LLMs. Return only the optimized prompt without any explanation.' }, { role: 'user', content: $json.userText } ], temperature: 0.2 }) }}"
+      },
+      "name": "OpenAI Optimize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        980,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "optimizedPrompt",
+              "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Optimized (OpenAI)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"optimizerModel\"]}}",
+              "operation": "equal",
+              "value2": "gemini"
+            }
+          ]
+        }
+      },
+      "name": "IF Optimizer is Gemini",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={{$env.GEMINI_API_KEY}}",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ contents: [ { role: 'user', parts: [ { text: 'You are a prompt optimizer. Rewrite and enhance the user prompt to improve clarity, completeness, and effectiveness for LLMs. Return only the optimized prompt without any explanation.\n\n' + $json.userText } ] } ], generationConfig: { temperature: 0.2 } }) }}"
+      },
+      "name": "Gemini Optimize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "optimizedPrompt",
+              "value": "={{$json.candidates[0].content.parts[0].text}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Optimized (Gemini)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"optimizerModel\"]}}",
+              "operation": "equal",
+              "value2": "doubao"
+            }
+          ]
+        }
+      },
+      "name": "IF Optimizer is Doubao",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.DOUBAO_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ model: $env.DOUBAO_MODEL, messages: [ { role: 'system', content: 'You are a prompt optimizer. Rewrite and enhance the user prompt to improve clarity, completeness, and effectiveness for LLMs. Return only the optimized prompt without any explanation.' }, { role: 'user', content: $json.userText } ] }) }}"
+      },
+      "name": "Doubao Optimize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        980,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "optimizedPrompt",
+              "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Optimized (Doubao)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"answerModel\"]}}",
+              "operation": "equal",
+              "value2": "gpt4"
+            }
+          ]
+        }
+      },
+      "name": "IF Answer is GPT-4",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"answerModel\"]}}",
+              "operation": "equal",
+              "value2": "gemini"
+            }
+          ]
+        }
+      },
+      "name": "IF Answer is Gemini",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"answerModel\"]}}",
+              "operation": "equal",
+              "value2": "doubao"
+            }
+          ]
+        }
+      },
+      "name": "IF Answer is Doubao",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.OPENAI_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ model: 'gpt-4o', messages: [ { role: 'system', content: 'You are a helpful assistant. Provide a high-quality response based on the user prompt.' }, { role: 'user', content: $json.optimizedPrompt } ], temperature: 0.7 }) }}"
+      },
+      "name": "OpenAI Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1740,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "modelAnswer",
+              "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Answer (OpenAI)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "model",
+              "value": "GPT-4"
+            },
+            {
+              "name": "answer",
+              "value": "={{$json.modelAnswer}}"
+            }
+          ]
+        }
+      },
+      "name": "Format Output (GPT-4)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={{$env.GEMINI_API_KEY}}",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ contents: [ { role: 'user', parts: [ { text: $json.optimizedPrompt } ] } ], generationConfig: { temperature: 0.7 } }) }}"
+      },
+      "name": "Gemini Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "modelAnswer",
+              "value": "={{$json.candidates[0].content.parts[0].text}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Answer (Gemini)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "model",
+              "value": "Gemini"
+            },
+            {
+              "name": "answer",
+              "value": "={{$json.modelAnswer}}"
+            }
+          ]
+        }
+      },
+      "name": "Format Output (Gemini)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.DOUBAO_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={{ ({ model: $env.DOUBAO_MODEL, messages: [ { role: 'system', content: 'You are a helpful assistant. Provide a high-quality response based on the user prompt.' }, { role: 'user', content: $json.optimizedPrompt } ] }) }}"
+      },
+      "name": "Doubao Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1980,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "modelAnswer",
+              "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Extract Answer (Doubao)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "model",
+              "value": "豆包"
+            },
+            {
+              "name": "answer",
+              "value": "={{$json.modelAnswer}}"
+            }
+          ]
+        }
+      },
+      "name": "Format Output (Doubao)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "User Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Input": {
+      "main": [
+        [
+          {
+            "node": "IF Optimizer is GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Optimizer is GPT-4": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Optimize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Optimizer is Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Optimizer is Gemini": {
+      "main": [
+        [
+          {
+            "node": "Gemini Optimize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Optimizer is Doubao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Optimizer is Doubao": {
+      "main": [
+        [
+          {
+            "node": "Doubao Optimize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Optimize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Optimize": {
+      "main": [
+        [
+          {
+            "node": "Extract Optimized (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Optimize": {
+      "main": [
+        [
+          {
+            "node": "Extract Optimized (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Doubao Optimize": {
+      "main": [
+        [
+          {
+            "node": "Extract Optimized (Doubao)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Optimized (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "IF Answer is GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Optimized (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "IF Answer is GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Optimized (Doubao)": {
+      "main": [
+        [
+          {
+            "node": "IF Answer is GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Answer is GPT-4": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Answer is Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Answer is Gemini": {
+      "main": [
+        [
+          {
+            "node": "Gemini Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Answer is Doubao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Answer is Doubao": {
+      "main": [
+        [
+          {
+            "node": "Doubao Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Answer": {
+      "main": [
+        [
+          {
+            "node": "Extract Answer (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Answer": {
+      "main": [
+        [
+          {
+            "node": "Extract Answer (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Doubao Answer": {
+      "main": [
+        [
+          {
+            "node": "Extract Answer (Doubao)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Answer (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Format Output (GPT-4)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Answer (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Format Output (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Answer (Doubao)": {
+      "main": [
+        [
+          {
+            "node": "Format Output (Doubao)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
